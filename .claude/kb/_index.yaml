@@ -1,0 +1,179 @@
+project: ws-3-crew-ai-multi-agent
+description: 'AI-native DataOps platform: Postgres source + chaos generator feeding
+  a Dagster/dbt/DuckDB analytical backbone, monitored by a CrewAI Sentinel crew exposed
+  via MCP.'
+last_updated: '2026-06-20'
+domains:
+  crewai:
+    name: CrewAI
+    description: "CrewAI multi-agent orchestration \u2014 hierarchical Process, manager_llm,\
+      \ memory, knowledge/RAG, guardrails + output_pydantic, human_input, Flows, tool\
+      \ retry"
+    path: crewai/
+    mcp_validated: '2026-06-20'
+    entry_points:
+      quick_reference: quick-reference.md
+    concepts:
+    - name: crew-agent-task-model
+      path: concepts/crew-agent-task-model.md
+      confidence: 0.95
+    - name: hierarchical-process
+      path: concepts/hierarchical-process.md
+      confidence: 0.95
+    - name: memory-and-knowledge
+      path: concepts/memory-and-knowledge.md
+      confidence: 0.95
+    patterns:
+    - name: guardrails-output-pydantic
+      path: patterns/guardrails-output-pydantic.md
+    - name: human-in-the-loop
+      path: patterns/human-in-the-loop.md
+    - name: flows-conditional-routing
+      path: patterns/flows-conditional-routing.md
+    reference:
+    - name: agent-task-crew-api
+      path: reference/agent-task-crew-api.md
+    - name: capability-unlock-map
+      path: reference/capability-unlock-map.md
+  dagster:
+    name: Dagster
+    description: "Dagster \u2014 software-defined assets, incremental/partitioned\
+      \ ingestion, asset checks, sensors, structured run logs the Log Analyst reads"
+    path: dagster/
+    mcp_validated: '2026-06-20'
+    entry_points:
+      quick_reference: quick-reference.md
+    concepts:
+    - name: asset-mental-model
+      path: concepts/asset-mental-model.md
+      confidence: 0.9
+    - name: partitions-and-incremental
+      path: concepts/partitions-and-incremental.md
+      confidence: 0.9
+    - name: asset-checks-vs-dbt-tests
+      path: concepts/asset-checks-vs-dbt-tests.md
+      confidence: 0.9
+    patterns:
+    - name: postgres-to-duckdb-asset
+      path: patterns/postgres-to-duckdb-asset.md
+    - name: incremental-extraction
+      path: patterns/incremental-extraction.md
+    - name: sensor-and-run-status
+      path: patterns/sensor-and-run-status.md
+    reference:
+    - name: asset-decorator-api
+      path: reference/asset-decorator-api.md
+    - name: run-log-and-metadata
+      path: reference/run-log-and-metadata.md
+  dbt:
+    name: dbt
+    description: "dbt Core / Cloud \u2014 models, sources, tests, snapshots, materializations,\
+      \ ref-graph discipline"
+    path: dbt/
+    mcp_validated: '2026-06-20'
+    entry_points:
+      quick_reference: quick-reference.md
+    concepts:
+    - name: models-and-materializations
+      path: concepts/models-and-materializations.md
+      confidence: 0.95
+    - name: tests-and-sources
+      path: concepts/tests-and-sources.md
+      confidence: 0.95
+    - name: snapshots-mental-model
+      path: concepts/snapshots-mental-model.md
+      confidence: 0.95
+    patterns:
+    - name: incremental-models
+      path: patterns/incremental-models.md
+    - name: ref-graph-discipline
+      path: patterns/ref-graph-discipline.md
+    - name: ci-build-and-state-defer
+      path: patterns/ci-build-and-state-defer.md
+    reference:
+    - name: jinja-helpers
+      path: reference/jinja-helpers.md
+    - name: dbt-yaml-schema
+      path: reference/dbt-yaml-schema.md
+  duckdb:
+    name: DuckDB
+    description: "DuckDB \u2014 in-process analytical engine, columnar/vectorized\
+      \ queries, Parquet, postgres scanner, MotherDuck cloud path; the Profiler queries\
+      \ this"
+    path: duckdb/
+    mcp_validated: '2026-06-20'
+    entry_points:
+      quick_reference: quick-reference.md
+    concepts:
+    - name: columnar-vectorized-model
+      path: concepts/columnar-vectorized-model.md
+      confidence: 0.95
+    - name: embedded-vs-warehouse
+      path: concepts/embedded-vs-warehouse.md
+      confidence: 0.95
+    - name: motherduck-cloud-path
+      path: concepts/motherduck-cloud-path.md
+      confidence: 0.95
+    patterns:
+    - name: postgres-scan-ingest
+      path: patterns/postgres-scan-ingest.md
+    - name: gold-obt-query
+      path: patterns/gold-obt-query.md
+    - name: anomaly-profiling-queries
+      path: patterns/anomaly-profiling-queries.md
+    reference:
+    - name: sql-dialect-notes
+      path: reference/sql-dialect-notes.md
+    - name: performance-and-explain
+      path: reference/performance-and-explain.md
+  mcp:
+    name: Model Context Protocol
+    description: "MCP \u2014 exposing analytics as typed tools (get_schema_info /\
+      \ execute_analytical_query / generate_report) over stdio/HTTP for Claude Desktop\
+      \ and other LLM hosts"
+    path: mcp/
+    mcp_validated: '2026-06-20'
+    entry_points:
+      quick_reference: quick-reference.md
+    concepts:
+    - name: mcp-protocol-model
+      path: concepts/mcp-protocol-model.md
+      confidence: 0.95
+    - name: tools-vs-resources
+      path: concepts/tools-vs-resources.md
+      confidence: 0.95
+    - name: transport-stdio-http
+      path: concepts/transport-stdio-http.md
+      confidence: 0.95
+    patterns:
+    - name: tool-schema-design
+      path: patterns/tool-schema-design.md
+    - name: analytical-tool-server
+      path: patterns/analytical-tool-server.md
+    - name: nl-to-sql-tool
+      path: patterns/nl-to-sql-tool.md
+    reference:
+    - name: server-sdk-api
+      path: reference/server-sdk-api.md
+    - name: tool-json-schema
+      path: reference/tool-json-schema.md
+  code-quality:
+    name: Code Quality
+    description: "Cross-tech universals \u2014 comments, dead code, security baseline.\
+      \ Grounded in by every closer."
+    path: code-quality/
+    mcp_validated: '2026-06-20'
+    entry_points:
+      quick_reference: quick-reference.md
+    concepts:
+    - name: comments
+      path: concepts/comments.md
+      confidence: 0.85
+    - name: dead-code
+      path: concepts/dead-code.md
+      confidence: 0.95
+    - name: security-universals
+      path: concepts/security-universals.md
+      confidence: 0.95
+    patterns: []
+    reference: []
