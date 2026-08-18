@@ -1,0 +1,44 @@
+name: "ecommerce_transform"
+version: "0.1.0"
+config-version: 2
+
+# C3 — the dbt-duckdb medallion. SOLE writer of bronze/silver/gold in the
+# single shared warehouse.duckdb. dbt NEVER reads Postgres: its only source is
+# the raw.raw_* tables that C2 (Dagster) lands in DuckDB.
+profile: "ecommerce_transform"
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Layer -> literal DuckDB schema mapping is enforced by macros/generate_schema_name.sql
+# (it returns the custom schema verbatim, NOT <target>_<custom>). The layer prefix
+# is ALSO kept in every table name, so a gold table is gold.gold_orders_obt — the
+# locked namespacing (schemas AS PRIMARY, prefix retained) is satisfied.
+models:
+  ecommerce_transform:
+    bronze:
+      +schema: bronze
+      +materialized: view
+    silver:
+      +schema: silver
+      # accepted models override to incremental in their own config; rejects
+      # override to table. Default here is a safe view, never used directly.
+      +materialized: view
+    gold:
+      +schema: gold
+      +materialized: table
+
+# store_failures on gold tests => a failing gold test ALSO writes an audit table
+# (the secondary quarantine surface). The *_rejects tables are the PRIMARY one.
+tests:
+  ecommerce_transform:
+    gold:
+      +store_failures: true

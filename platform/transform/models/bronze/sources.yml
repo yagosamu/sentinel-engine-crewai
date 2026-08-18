@@ -1,0 +1,25 @@
+version: 2
+
+# The ONLY thing dbt reads: the raw schema C2 (Dagster) lands in the SAME
+# DuckDB file. dbt never attaches/queries Postgres. Tables carry both the `raw`
+# schema and the `raw_` name prefix (raw.raw_<entity>).
+#
+# No source freshness blocks here: freshness is owned by C8 over
+# gold.gold_freshness_watermarks (anchored on _ingested_at), not by dbt source
+# freshness. No tests on sources — raw intentionally contains defects.
+sources:
+  - name: raw
+    description: "C2-owned raw landing zone (Postgres mirrored 1:1, defects intact)."
+    schema: raw
+    tables:
+      - name: raw_customers
+        description: "Raw customers, source watermark = created_at. _ingested_at is the C8/AC-3 anchor."
+      - name: raw_products
+        description: "Raw products, source watermark = created_at."
+      - name: raw_orders
+        description: >
+          Raw orders. customer_id is already normalized into the stable slot by C2
+          (schema_drift owned upstream); _schema_drift flags rows captured while the
+          source column was user_id. Dual-watermark (ordered_at + order_id).
+      - name: raw_payments
+        description: "Raw payments, source watermark = paid_at. orphan_payment order_ids land intact."

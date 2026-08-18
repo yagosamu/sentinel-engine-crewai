@@ -4,7 +4,16 @@
         ac1 ac1-full ac1-json ac3 ac3-ci dbt-build \
         evals eval-ac1 eval-ac2 eval-ac3 eval-defects
 
+# Recipes below use bash syntax (loops, ${VAR:-default}, `bash script.sh`).
+# On Windows, /bin/bash does not resolve unless make is invoked from a POSIX
+# shell, so point at Git for Windows' bash explicitly. PROGRA~1 is the 8.3 short
+# name for "Program Files" — it avoids the space that would otherwise break the
+# SHELL assignment.
+ifeq ($(OS),Windows_NT)
+SHELL := C:/PROGRA~1/Git/bin/bash.exe
+else
 SHELL := /bin/bash
+endif
 COMPOSE := docker compose
 
 # Dagster needs a home for the instance (run/event storage) so successive
@@ -85,11 +94,11 @@ watch: ## Stream traffic and inject random failures (Ctrl-C to stop)
 	$(GEN) watch
 
 dagster-dev: ## Launch the Dagster UI for C2 ingestion (http://localhost:3000)
-	@mkdir -p $(DAGSTER_HOME)
+	@mkdir -p "$(DAGSTER_HOME)"
 	uv run dagster dev -m platform.ingestion.definitions
 
 ingest-once: ## Run C2 raw ingestion once (Postgres -> DuckDB raw.raw_*), incremental
-	@mkdir -p $(DAGSTER_HOME)
+	@mkdir -p "$(DAGSTER_HOME)"
 	uv run python -m platform.ingestion.run --persistent
 
 ac1: ## C4h AC-1 gate: fast smoke (peak load + analytics, exit!=0 on breach)
@@ -102,8 +111,8 @@ ac1-json: ## C4h AC-1 gate (full) as JSON for evals/dashboards
 	uv run python -m platform.harness.cli --profile full --json
 
 dbt-build: ## Run the C3 dbt medallion build (bronze->silver->gold) into the warehouse
-	@mkdir -p $(DAGSTER_HOME)
-	cd platform/transform && DUCKDB_DATABASE=$(CURDIR)/platform/warehouse/warehouse.duckdb \
+	@mkdir -p "$(DAGSTER_HOME)"
+	cd platform/transform && DUCKDB_DATABASE="$(CURDIR)/platform/warehouse/warehouse.duckdb" \
 		uv run dbt build --profiles-dir profiles
 
 ac3: ## C8 AC-3 gate: median source->gold freshness lag <= 5min (3 samples)
@@ -113,19 +122,19 @@ ac3-ci: ## C8 AC-3 gate: single-shot CI mode (1 sample, JSON, exit!=0 on breach)
 	uv run python -m platform.probe.cli --ci
 
 evals: ## Run ALL acceptance-criteria evals and print a verdict table (scaled-down)
-	bash platform/evals/run_evals.sh
+	$(SHELL) platform/evals/run_evals.sh
 
 eval-ac1: ## Eval AC-1 peak isolation (PROFILE=smoke|full; default smoke)
-	bash platform/evals/eval_ac1.sh $(PROFILE)
+	$(SHELL) platform/evals/eval_ac1.sh $(PROFILE)
 
 eval-ac2: ## Eval AC-2 gold query p95 <= 5s (REPS overridable)
-	bash platform/evals/eval_ac2.sh $(REPS)
+	$(SHELL) platform/evals/eval_ac2.sh $(REPS)
 
 eval-ac3: ## Eval AC-3 source->gold freshness <= 5min (SAMPLES overridable)
-	bash platform/evals/eval_ac3.sh $(SAMPLES)
+	$(SHELL) platform/evals/eval_ac3.sh $(SAMPLES)
 
 eval-defects: ## Eval defect survival: inject -> caught in *_rejects, absent from gold
-	bash platform/evals/eval_defect_survival.sh
+	$(SHELL) platform/evals/eval_defect_survival.sh
 
 lint: ## Lint the Python code with ruff
 	uv run ruff check src platform tests

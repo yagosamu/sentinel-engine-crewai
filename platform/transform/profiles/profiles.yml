@@ -1,0 +1,20 @@
+# C3 dbt profile — points at the SAME single warehouse file as every other
+# Component A layer via the canonical env var DUCKDB_DATABASE (the ONLY name;
+# DUCKDB_PATH / WAREHOUSE_DB_PATH are rejected by C4 paths.py).
+#
+# The default literal here mirrors platform/warehouse/paths.py:DEFAULT_WAREHOUSE_FILE.
+# It is the one duplication of the path default that dbt forces (dbt cannot import
+# Python at profile-parse time); keep it in lock-step with paths.py.
+#
+# dbt does NOT attach Postgres. Its source (raw.raw_*) already lives in this file.
+ecommerce_transform:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      # Single shared file. C2 writes raw here; C3 writes bronze/silver/gold here.
+      # Writers are serialized (ingest THEN dbt) per the concurrency contract.
+      path: "{{ env_var('DUCKDB_DATABASE', '../warehouse/warehouse.duckdb') }}"
+      # One in-process thread keeps DuckDB's single-writer contract unambiguous.
+      threads: 1
+      # extensions/settings left default; the medallion is pure SQL over local tables.

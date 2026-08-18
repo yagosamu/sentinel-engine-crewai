@@ -1,0 +1,80 @@
+# Sentinel task chain. Investigation (A1/A2/A3) then resolution (A4/A5).
+#
+# The synthesize_diagnosis_task is the scoring hand-off point: its
+# output_pydantic Diagnosis.failure_key is what sentinel.scoring consumes.
+# The write_postmortem_task is the malformed_data unlock: output_pydantic +
+# a validation guardrail force a typed report even from garbage input.
+# The propose_fix_task is the destructive_fix unlock: human_input pauses for
+# approval before A4 emits a (gated, never-auto-applied) proposal.
+
+analyze_pipeline_logs_task:
+  description: >
+    Inspect the backbone's pipeline exhaust for evidence of a PIPELINE-level
+    failure. Use read_dagster_logs to find any BACKBONE_RUN_FAILURE record (I1)
+    and read_dbt_run_results to find any failed dbt node (I2). A renamed source
+    column surfaces as a dbt model error (schema_drift). A stalled / timed-out
+    log read points to slow_source. If the logs are clean, say so plainly — the
+    incident may be a data defect for the Data Profiler, not a pipeline error.
+  expected_output: >
+    A short log-analysis report naming the broken node and error if present, and
+    the pipeline failure_key you believe it indicates (schema_drift or
+    slow_source), or an explicit "no pipeline-level failure found".
+  agent: log_analyst
+
+profile_warehouse_task:
+  description: >
+    Confirm whether a DATA-QUALITY defect is present in the warehouse (I3). For
+    each plausible data failure_key, use profile_rejects to check its quarantine
+    surface (silver_*_rejects with reject_rule == failure_key), its accepted-flag
+    (late_arrival -> is_late, schema_drift -> _schema_drift), or its volume
+    signal (volume_spike). Report the failure_key with a non-zero count, its row
+    count, and the EXACT evidence surface you found it in. The data-quality
+    failures you can detect are: negative_price, missing_customer,
+    invalid_quantity, duplicate_order, late_arrival, volume_spike, orphan_payment.
+  expected_output: >
+    A profiling report: the detected data-quality failure_key, the count of
+    offending rows, and the precise evidence surface (e.g. silver_orders_rejects),
+    or an explicit "no data-quality defect found".
+  agent: data_profiler
+
+synthesize_diagnosis_task:
+  description: >
+    Weigh the Log Analyst and Data Profiler findings and decide the single most
+    likely root cause. Emit ONE typed Diagnosis: failure_key (the single best
+    generator failure_key), evidence_surface (the surface that proves it),
+    confidence (0.0-1.0), and a one-line summary. If multiple independent failures
+    are present simultaneously, set failure_key to "multi_failure_cascade" and
+    list the members in sub_failures. Do not invent a failure the squad did not
+    find evidence for.
+  expected_output: >
+    A single Diagnosis with failure_key set to the diagnosed generator failure_key
+    (and sub_failures populated only for a cascade), evidence_surface citing where
+    the defect was found, a confidence, and a concise summary.
+
+propose_fix_task:
+  description: >
+    Given the confirmed Diagnosis, draft a PROPOSED corrective change for the root
+    cause — a dbt model edit, a Dagster patch, or a corrective SQL statement — and
+    write it with propose_patch. The proposal is GATED and ADVISORY: it is written
+    to sentinel/proposed/ and NEVER applied to the backbone (platform/). If the
+    remediation is destructive (a bulk overwrite, e.g. destructive_fix), do NOT
+    proceed without explicit human approval first — the task will pause for it.
+  expected_output: >
+    The path of the proposed-patch file written under sentinel/proposed/, plus a
+    one-line note of what it changes and that it is gated (never auto-applied).
+  agent: data_engineer
+
+write_postmortem_task:
+  description: >
+    Author the blameless incident post-mortem for the diagnosed incident. First
+    use query_incident_rag to recall similar past incidents and a recurrence count
+    (so a repeat offender is recognised, not cold-started). Then write the
+    post-mortem with write_postmortem. Produce a typed Postmortem: incident_key
+    (the diagnosed failure_key), root_cause, evidence (the surface that proves it),
+    proposed_fix (the gated fix summary), and recurrence_note. Even if the source
+    data is garbage (malformed_data), the report MUST be structured and complete —
+    never echo raw noise into a field; summarise it.
+  expected_output: >
+    A typed Postmortem (incident_key, root_cause, evidence, proposed_fix,
+    recurrence_note) AND the markdown path written under sentinel/postmortems/.
+  agent: incident_commander
