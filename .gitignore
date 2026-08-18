@@ -25,3 +25,6 @@ platform/warehouse/warehouse.duckdb.wal
 platform/transform/target/
 platform/transform/logs/
 platform/transform/dbt_packages/
+
+# Editor/pre-edit backup files
+*.bak
