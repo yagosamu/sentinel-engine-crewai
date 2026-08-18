@@ -2,10 +2,11 @@
 
 **English** · [Português](README.pt-br.md)
 
+![Sentinel Engine](assets/hero.svg)
+
 An **autonomous DataOps crew** that watches an analytical backbone, diagnoses failures
-injected into it, and is **graded against a ground-truth ledger** — never asserted correct.
-Built with **CrewAI**, **Dagster**, **dbt** and **DuckDB** during my AI Data Engineer
-specialization.
+injected into it, and is **graded against a ground-truth ledger**, never asserted correct.
+Built with **CrewAI**, **Dagster**, **dbt** and **DuckDB**.
 
 It closes a loop the two earlier projects opened: the
 [DataOps Knowledge Hub](https://github.com/yagosamu/llamaindex_pydantic_rag) made the data queryable, the
@@ -14,7 +15,7 @@ a human. Here the judgment itself gets judged.
 
 ## Why score an agent instead of testing it?
 
-A test asserts a known output. An agent diagnosing an incident has no known output — only a
+A test asserts a known output. An agent diagnosing an incident has no known output, only a
 more or less plausible story. So the system plants failures it already knows the answer to:
 a **14-mode chaos generator** corrupts the source and writes each injection to an
 `injected_incidents` ledger. The crew never sees that ledger. The oracle does.
@@ -28,7 +29,7 @@ Grading runs in two tiers, and the second one is the interesting half:
 
 Tier 2 exists to catch the failure mode a single score would hide: **a lucky guess**. Name
 the right `failure_key` while inventing the reasoning and you score `match=1.0`,
-`evidence=0.0` — visibly flagged rather than rewarded. And a run the crew could not finish
+`evidence=0.0`, visibly flagged rather than rewarded. And a run the crew could not finish
 returns `NO-RUN`, never a fabricated number.
 
 > **The one-way dependency is enforced, not just documented.**
@@ -40,7 +41,7 @@ returns `NO-RUN`, never a fabricated number.
 ### A cheap tier detects, a strong tier coordinates
 
 The four specialists run on `gpt-4o-mini`; only the manager runs `gpt-4o`. Reading a rejects
-table or a dbt error is mechanical — a cheap model does it fine. Weighing two squads of
+table or a dbt error is mechanical, a cheap model does it fine. Weighing two squads of
 contradictory evidence into a single verdict is the judgment call, so that step gets the
 stronger model. Same reasoning as the Guardian's Haiku-proposes / Sonnet-judges split,
 applied to delegation instead of self-correction.
@@ -78,7 +79,7 @@ flowchart LR
   LED -. I4 .-> ORA
 ```
 
-A1 is a custom `manager_agent` in a CrewAI **hierarchical** process — it delegates and never
+A1 is a custom `manager_agent` in a CrewAI **hierarchical** process, and it delegates but never
 detects. The specialists carry `allow_delegation=False`, so delegation flows one way.
 
 | Agent | Detects | Tools | Surface |
@@ -92,48 +93,9 @@ detects. The specialists carry `allow_delegation=False`, so delegation flows one
 The investigation squad emits a typed `Diagnosis` (`output_pydantic`), not free text. That
 typing is what makes the crew scorable at all.
 
-## Demo
-
-**The medallion quarantines rather than drops.** 9,533 raw orders after a chaos run split
-cleanly, and nothing corrupt reached the serving layer:
-
-```
-raw_orders                 9,533
-  ├─ silver_orders         5,455   accepted
-  └─ silver_orders_rejects 4,078   quarantined, stamped with reject_rule
-gold_orders_obt            5,455   ← exactly the accepted set
-```
-
-**All four acceptance gates, measured on my machine** — `0 SKIP` matters here, because the
-suite returns exit code `77` for *unmeasurable* rather than letting a missing precondition
-pass silently:
-
-```
-  ID        CRITERION                       VERDICT
-  --------  ------------------------------  -------
-  ac1       AC-1 peak isolation             PASS
-  ac2       AC-2 gold p95 <= 5s             PASS
-  ac3       AC-3 freshness <= 5min          PASS
-  defect    DEFECT survival (U3)            PASS
-
-  totals: 4 PASS  0 FAIL/ERROR  0 SKIP        (elapsed 271s)
-OVERALL: PASS — every eval that ran met its criterion.
-```
-
-**Defect survival, per failure mode.** Seven defects injected, each caught in the right
-quarantine table under its own `reject_rule`, none leaking downstream:
-
-```
---- duplicate_order -> silver.silver_orders_rejects (reject_rule=duplicate_order) ---
-  -> injected: duplicated into order_id=5001            (detected by Data Profiler)
-  -> caught in silver.silver_orders_rejects:  3154 row(s)
-  -> leaked into gold.gold_orders_obt:           0 row(s)
-[ PASS ] duplicate_order: defect quarantined and absent from gold.
-```
-
 ## How the plans were built
 
-The two plans under [`sketch/`](sketch) came out of a four-pass planning relay — intent,
+The two plans under [`sketch/`](sketch) came out of a four-pass planning relay: intent,
 structure, decomposition, then an adversarial consensus pass run on a **different model**
 (Codex attacks, Claude defends), because a model reviewing its own plan produces agreement,
 not consensus.
@@ -152,7 +114,7 @@ FastAPI · MCP · uv · Docker · pytest · ruff
 ## Run
 
 ```bash
-cp .env.example .env     # add OPENAI_API_KEY (optional — without one the crew
+cp .env.example .env     # add OPENAI_API_KEY (optional, without one the crew
                          # falls back to a deterministic cascade Flow)
 make setup               # install dependencies with uv
 make up                  # PostgreSQL 17; schema auto-applies on first boot
@@ -169,5 +131,5 @@ make dagster-dev         # or: the asset graph at http://localhost:3000
 
 > **Windows note.** The `Makefile` detects the platform and points `SHELL` at Git Bash, and
 > quotes every path it passes. Both are needed: GNU Make bypasses `SHELL` entirely for
-> recipes without shell metacharacters, running them through `CreateProcess` — where
+> recipes without shell metacharacters, running them through `CreateProcess`, where
 > `mkdir -p` does not exist and `bash` resolves to the WSL stub.
