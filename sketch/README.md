@@ -87,14 +87,16 @@ than merely asserted (rule R5). It already existed in C1 from day one.
 
 | id | Decision | Status |
 | --- | --- | --- |
-| U1 | Scope — is C5 (+ Component B) in this program, or "evaluate later"? | resolved → full scope incl. MCP (ADR-0001) |
-| U2 | Raw boundary — Dagster (C2) vs. dbt bronze (C3) owns raw landing | resolved → Dagster owns raw (ADR-0001) |
-| U3 | Detection seam — which defects survive bronze→silver→gold to where A3 looks | resolved → quarantine-not-drop (ADR-0001) |
+| U1 | Scope — is C5 (+ Component B) in this program, or "evaluate later"? | **not resolved on the record** — both are fully built, but no ADR contains a scope decision reopening U1 (ADR-0001's five decisions are U2, U3, the CDC mechanism, the bulk-upsert fix, and dbt/Dagster DAG wiring — none is a scope call). Accepted as a known gap in Pass 4 (2026-08-18); see `sketch/analytical-backbone.md`'s Open/unresolved section. *(Owner: CTO/VP Data — write ADR-0003, or roll back.)* |
+| U2 | Raw boundary — Dagster (C2) vs. dbt bronze (C3) owns raw landing | resolved → Dagster owns raw (ADR-0001, Decision 1) |
+| U3 | Detection seam — which defects survive bronze→silver→gold to where A3 looks | resolved → quarantine-not-drop (ADR-0001, Decision 2) |
 
-> The sketches present U1–U3 as **open**. They were resolved after authoring and
-> are recorded in **ADR-0001**; the resolutions also live in agent memory
-> (`backbone-locked-decisions.md`). The sketches were not updated — read the ADR
-> for the live answer.
+> The sketches present U1–U3 as **open**. U2 and U3 were resolved after authoring
+> and are recorded in **ADR-0001**; those resolutions also live in agent memory
+> (`backbone-locked-decisions.md`). **U1 was not** — this table previously (and
+> incorrectly) cited ADR-0001 for it; that citation didn't hold up under a direct
+> read of the ADR and has been corrected here. For U2/U3, read the ADR for the
+> live answer; for U1, there is no ADR answer yet.
 
 ### `AC-#` — Acceptance criteria (the brief's pass/fail gates)
 

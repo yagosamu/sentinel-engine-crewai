@@ -105,11 +105,11 @@ Continuously samples source-commit time → gold-availability time.
 
 | AC | What it proves | Covered by |
 | --- | --- | --- |
-| AC-1 | Peak isolation (go/no-go gate) | **C4h** |
-| AC-2 | Query latency p95 ≤ 5s | C4, C3 (gold OBTs) |
+| AC-1 | Peak isolation (go/no-go gate) | **C4h** — confirm the 75k orders/day design point against real peak logs first (brief OA-3); the number is right, it just isn't independently validated yet |
+| AC-2 | Query latency **p95 ≤ 5s AND p99 ≤ 15s**, sampled over a full business week | C4, C3 (gold OBTs) — p99 and the week-long sampling window are part of the brief's AC-2 text; a p95-only eval under-covers it |
 | AC-3 | Freshness ≤ 5 min | C2 (incremental), **C8** (measures it) |
-| AC-4 | Intraday pricing cadence | platform consumer — outcome, not a component |
-| AC-5 / AC-6 | Incident load / maintenance down | operational outcome of the whole split |
+| AC-4 | Intraday pricing cadence (≤15-min refresh through a full peak window) | **not covered by any component in this plan.** No pricing job, probe, or consumer path exists here — this is a real gap, not an "outcome" to wave through. Whoever owns the pricing consumer must build and demonstrate the 15-min cadence separately; this plan only guarantees the data is fresh enough to support it. |
+| AC-5 / AC-6 | Incident load / maintenance down | **not measured by anything in this plan** — these are read off the existing incident-tracking and time-tracking systems (per the brief), not off a component built here. Listed for completeness of the AC map, not as delivered coverage. |
 
 ---
 
@@ -155,17 +155,44 @@ Read-only contract — A produces, B observes. See `sentinel-engine.md`.
 
 ## Open / unresolved
 
-- **U1 · Scope conflict (Phase 0).** Brief scopes C5 *out*; spec makes it central.
-  Unresolved = inverted priorities. *(Owner: CTO / VP Data.)*
-- **U2 · C2/C3 raw boundary.** Spec says Dagster lands "directly into raw DuckDB"
-  *and* that dbt bronze is the "raw mirror." Decide which owns raw — sets the
-  C2↔C3 interface.
-- **U3 · Detection seam (→ Component B).** Failures are injected into raw Postgres
-  (often by dropping constraints); the Profiler is specced against gold DuckDB. If
-  silver cleans them, defects vanish before B looks. The contract above must
-  define which defects survive to which layer. Blocks B's planning.
-- **Freshness vs. "real-time":** a Dagster→dbt batch pipeline is *minutes-fresh*,
-  not true real-time. AC-3 asks ≤ 5 min, which batch can meet — confirm minutes
-  suffices, don't over-build true real-time. *(Owner: VP Data.)*
-- **CDC mechanism for C2** (true CDC vs. incremental-by-timestamp) — decide at
-  task time; affects whether C8 can hit ≤ 5 min.
+*Sharpened in Pass 4 (Codex adversarial review, 2026-08-18) — see the ADRs for
+what actually closed these; the entries below are corrected from the original
+authoring-time text, not left stale.*
+
+- **U1 · Scope conflict — ACCEPTED-RISK, not resolved on the record.** The brief
+  scopes C5 (and Component B) *out* ("evaluate after the foundation is proven");
+  the spec makes C5 central. Both are now fully built. **Neither ADR-0001 nor
+  ADR-0002 contains a decision that reopens U1** — `sketch/README.md` previously
+  cited ADR-0001 as the resolution, but ADR-0001's five decisions are U2, U3, the
+  CDC mechanism, the bulk-upsert fix, and dbt/Dagster DAG wiring; none of them is
+  a scope call (that citation has been corrected). Accepted as a known gap rather
+  than fixed here, because fixing it means writing the missing ADR, not editing
+  this plan. *(Owner: CTO / VP Data — write ADR-0003 confirming full scope, or
+  roll C5/B back to match the brief.)*
+- **U2 · C2/C3 raw boundary — FIXED, this is resolved, not open.** ADR-0001
+  Decision 1: Dagster (C2) owns the raw landing; dbt bronze is the first
+  *transformation*, not a second extractor. The join seam is the Dagster asset
+  key, asserted at definition-load time. Codex's adversarial pass flagged this
+  entry as possibly overstating a conflict the spec doesn't create — correct on
+  both counts: it isn't a conflict, and it's already decided.
+- **U3 · Detection seam — FIXED, resolved.** ADR-0001 Decision 2: quarantine, not
+  drop. A defect is visible in `silver_<entity>_rejects`, absent from gold — that
+  is the named answer. Not open.
+- **Freshness vs. "real-time" — accepted as-is.** A Dagster→dbt batch pipeline is
+  minutes-fresh; AC-3's ≤5min target is written to match that, not true real-time.
+  No change needed.
+- **CDC mechanism for C2 — FIXED, resolved with a named limit.** ADR-0001
+  Decision 3: timestamp high-watermark + bounded-PK arms, not log-based CDC (no
+  WAL, no delete capture). It carries one documented precondition — an in-place
+  UPDATE older than both the lookback window and the PK band is not detectable by
+  this scheme alone — which the generator does not exercise, so it is sound as
+  scoped. Anyone extending the generator to emit stale in-place updates must
+  revisit this.
+- **A4's patch quality ceiling (new, from Codex Step 1).** The Sentinel's Data
+  Engineer (A4) drafts proposed patches from A2/A3's evidence only — it has no
+  read access into `platform/transform` or `platform/ingestion` source, so it
+  cannot see the actual dbt model or Dagster asset it's patching. **ACCEPTED**:
+  patches stay evidence-grounded but code-blind; this is tolerable because every
+  patch is gated, advisory, and human-reviewed before anything is applied (R3).
+  Giving A4 read access to the backbone source is legitimate future scope, not
+  done here. *(Owner: whoever next extends `sentinel/tools/resolution.py`.)*
